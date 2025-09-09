@@ -3,19 +3,30 @@ const bookshelf = require("./bookshelf");
 
 // Fungsi Menambahkan Buku
 const addBookHandler = (request, h) => {
-    const {name, year, author, summary, publisher, pageCount, readPage, reading} = request.payload;
+    const { name, year, author, summary, publisher, pageCount, readPage, reading } = request.payload;
+
+    if (!name) {
+        const response = h.response({
+            status: "fail",
+            message: "Gagal menambahkan buku. Mohon isi nama buku"
+        });
+        response.code(400);
+        return response;
+    }
 
     if (readPage > pageCount) {
         const response = h.response({
             status: "fail",
             message: "Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount"
-        })
+        });
+        response.code(400);
+        return response;
     }
 
     const id = nanoid(16);
     const insertedAt = new Date().toISOString();
     const updatedAt = insertedAt;
-    const finishedAt = pageCount === readPage;
+    const finished = pageCount === readPage;
 
     const newBook = {
         id,
@@ -25,63 +36,49 @@ const addBookHandler = (request, h) => {
         summary,
         publisher,
         pageCount,
+        readPage,
         reading,
-        finishedAt,
+        finished,
         insertedAt,
         updatedAt
     };
+
     bookshelf.push(newBook);
 
-    const isSuccess = bookshelf.filter((book) => book.id === id).length > 0;
-
-    if (isSuccess) {
-        const response = h.response({
-            status: "success",
-            message: "Buku Berhasil ditambahkan",
-            data: {
-                bookId: id,
-            },
-        });
-        response.code(201);
-        return response;
-    }
-
     const response = h.response({
-        status: "fail",
-        message: "Gagal Menambahkan Buku. Mohon isi nama buku",
+        status: "success",
+        message: "Buku berhasil ditambahkan",
+        data: {
+            bookId: id,
+        },
     });
-    response.code(400);
+    response.code(201);
     return response;
-
 };
 
-// Fungsi Menampilkan keseluruhan Buku dan berdasarkan Id
-
+// Fungsi Menampilkan semua buku dan Berdasarkan ID
 const getAllBooksHandler = (request, h) => {
     const { name, reading, finished } = request.query;
 
     let filteredBooks = bookshelf;
 
-    // Filter berdasarkan nama (non-case sensitive)
     if (name) {
         filteredBooks = filteredBooks.filter((book) =>
             book.name.toLowerCase().includes(name.toLowerCase())
         );
     }
 
-    // Filter berdasarkan status reading (0 atau 1)
     if (reading !== undefined) {
         const isReading = reading === '1';
         filteredBooks = filteredBooks.filter((book) => book.reading === isReading);
     }
 
-    // Filter berdasarkan status finished (0 atau 1)
     if (finished !== undefined) {
         const isFinished = finished === '1';
         filteredBooks = filteredBooks.filter((book) => book.finished === isFinished);
     }
 
-    const response = h.response({
+    return h.response({
         status: "success",
         data: {
             books: filteredBooks.map((book) => ({
@@ -90,81 +87,60 @@ const getAllBooksHandler = (request, h) => {
                 publisher: book.publisher,
             })),
         },
-    });
-    response.code(200);
-    return response;
+    }).code(200);
 };
 
+// Fungsi Menampilkan detail buku berdasarkan ID
 const getBookByIdHandler = (request, h) => {
     const { bookId } = request.params;
 
-    const book = bookshelf.find((n) => n.id === bookId);
+    const book = bookshelf.find((b) => b.id === bookId);
 
-    if (book) {
-        const response = h.response({
-            status: "success",
-            data: {
-                book: {
-                    id: bookId,
-                    name: book.name,
-                    year: book.year,
-                    author: book.author,
-                    summary: book.summary,
-                    publisher: book.publisher,
-                    pageCount: book.pageCount,
-                    readPage: book.readPage,
-                    finishedAt: book.finishedAt,
-                    reading: book.reading,
-                    insertedAt: book.insertedAt,
-                    updatedAt: book.updatedAt
-                },
-            },
-        });
-        response.code(200);
-        return response;
+    if (!book) {
+        return h.response({
+            status: "fail",
+            message: "Buku tidak ditemukan",
+        }).code(404);
     }
 
-const response = h.response({
-    status: "fail",
-    message: "Buku Tidak ditemukan",
-});
-    response.code(404);
-    return response;
+    return h.response({
+        status: "success",
+        data: {
+            book,
+        },
+    }).code(200);
 };
 
-// Fungsi Mengubah Buku dengan Method PUT
-
+// Fungsi Mengubah data buku dengan METHOD PUT
 const editBookByIdHandler = (request, h) => {
     const { bookId } = request.params;
-
     const { name, year, author, summary, publisher, pageCount, readPage, reading } = request.payload;
 
-    const updatedAt = new Date().toISOString();
+    if (!name) {
+        return h.response({
+            status: "fail",
+            message: "Gagal memperbarui buku. Mohon isi nama buku"
+        }).code(400);
+    }
+
+    if (readPage > pageCount) {
+        return h.response({
+            status: "fail",
+            message: "Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount"
+        }).code(400);
+    }
 
     const index = bookshelf.findIndex((book) => book.id === bookId);
 
     if (index === -1) {
-        const response = h.response({
-            status: 'fail',
-            message: "Gagal memperbarui buku. Id tidak ditemukan",
-        });
-        response.code(404);
-        return response;
-    } else if (readPage > pageCount) {
-        const response = h.response({
-            status: 'fail',
-            message: "Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount"
-        });
-        response.code(400);
-        return response;
-    } else if (!name) {
-        const response = h.response({
-            status: 'fail',
-            message: 'Gagal memperbarui buku. Mohon isi nama buku'
-        });
-        response.code(400);
-        return response;
+        return h.response({
+            status: "fail",
+            message: "Gagal memperbarui buku. Id tidak ditemukan"
+        }).code(404);
     }
+
+    const updatedAt = new Date().toISOString();
+    const finished = pageCount === readPage;
 
     bookshelf[index] = {
         ...bookshelf[index],
@@ -176,21 +152,17 @@ const editBookByIdHandler = (request, h) => {
         pageCount,
         readPage,
         reading,
+        finished,
         updatedAt,
     };
 
-    const response = h.response({
-        status: 'success',
-        message: 'Buku berhasil diperbarui'
-    });
-
-    response.code(200);
-    return response;
+    return h.response({
+        status: "success",
+        message: "Buku berhasil diperbarui"
+    }).code(200);
 };
 
-
-
-// Fungsi Menghapus Buku
+// Fungsi Menghapus buku
 const deleteBookByIdHandler = (request, h) => {
     const { bookId } = request.params;
 
@@ -198,21 +170,22 @@ const deleteBookByIdHandler = (request, h) => {
 
     if (index !== -1) {
         bookshelf.splice(index, 1);
-        const response = h.response({
+        return h.response({
             status: "success",
-            message: "Buku Berhasil dihapus",
-        });
-        response.code(200);
-        return response;
+            message: "Buku berhasil dihapus"
+        }).code(200);
     }
-    const response = h.response({
+    return h.response({
         status: "fail",
-        message: "Buku gagal dihapus. Id tidak ditemukan",
-    })
-    response.code(404);
-    return response;
+        message: "Buku gagal dihapus. Id tidak ditemukan"
+    }).code(404);
+
 };
 
-
-
-module.exports = { addBookHandler, getAllBooksHandler, getBookByIdHandler, editBookByIdHandler, deleteBookByIdHandler };
+module.exports = {
+    addBookHandler,
+    getAllBooksHandler,
+    getBookByIdHandler,
+    editBookByIdHandler,
+    deleteBookByIdHandler
+};
