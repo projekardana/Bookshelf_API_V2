@@ -39,6 +39,19 @@ npm run start
 Server Akan Berjalan pada Localhost 9000
 http://localhost:9000
 ```
+---
+Dokumentasi RESTFul API With Postman
+
+https://documenter.getpostman.com/view/48261008/2sB3HnJf9J
+
+---
+
+## Contact
+Name : Muhammad Dendi Ardama
+
+e-mail : muhdendiardana@gmail.com
+
+Linkdln : https://www.linkedin.com/in/mdendiardana
 
 
 
