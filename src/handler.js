@@ -62,7 +62,7 @@ const getAllBooksHandler = (request, h) => {
 
     let filteredBooks = bookshelf;
 
-    // 🔍 Filter berdasarkan nama (non-case sensitive)
+    // Filter berdasarkan nama (non-case sensitive)
     if (name) {
         filteredBooks = filteredBooks.filter((book) =>
             book.name.toLowerCase().includes(name.toLowerCase())
